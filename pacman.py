@@ -43,6 +43,24 @@ class GameObject(pygame.sprite.Sprite):
     def draw(self, scr):
         scr.blit(self.image, (self.screen_rect.x, self.screen_rect.y))
 
+class Map:
+        def __init__(self, w, h):
+                self.map = [ [list()]*w for i in range(h) ]
+
+        def get(self, x, y):
+                return self.map[x][y]
+
+
+
+
+class Wall(GameObject):
+    def __init__(self,x,y,tile_size, map_size):
+        GameObject.__init__(self, './resources/wall.png', x, y, tile_size, map_size)
+        self.direction = 0
+        self.velocity = 0
+
+    
+
 
 class Ghost(GameObject):
     def __init__(self, x, y, tile_size, map_size):
@@ -129,6 +147,8 @@ if __name__ == '__main__':
     map_size = 16
     ghost = Ghost(0, 0, tile_size, map_size)
     pacman = Pacman(5, 5, tile_size, map_size)
+    walls=[]
+    walls.append(Wall(5,1,tile_size, map_size))
     background = pygame.image.load("./resources/background.png")
     screen = pygame.display.get_surface()
 
@@ -140,4 +160,7 @@ if __name__ == '__main__':
         draw_background(screen, background)
         pacman.draw(screen)
         ghost.draw(screen)
+        for w in walls:
+            w.draw(screen)
         pygame.display.update()
+
