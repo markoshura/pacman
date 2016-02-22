@@ -3,11 +3,13 @@ import pygame
 from pygame.locals import *
 from math import floor
 import random
+tile_Size = 32
+map_Size = 18
 
 
 def init_window():
     pygame.init()
-    pygame.display.set_mode((512, 512))
+    pygame.display.set_mode((map_Size * tile_Size, map_Size * tile_Size))
     pygame.display.set_caption('Pacman')
 
 
@@ -16,26 +18,24 @@ def draw_background(scr, img=None):
         scr.blit(img, (0, 0))
     else:
         bg = pygame.Surface(scr.get_size())
-        bg.fill((128, 128, 128))
+        bg.fill((64, 64, 64))
         scr.blit(bg, (0, 0))
 
 
 class GameObject(pygame.sprite.Sprite):
-    def __init__(self, img, x, y, tile_size, map_size):
+    def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(img)
         self.screen_rect = None
         self.x = 0
         self.y = 0
         self.tick = 0
-        self.tile_size = tile_size
-        self.map_size = map_size
         self.set_coord(x, y)
 
     def set_coord(self, x, y):
         self.x = x
         self.y = y
-        self.screen_rect = Rect(floor(x) * self.tile_size, floor(y) * self.tile_size, self.tile_size, self.tile_size )
+        self.screen_rect = Rect(floor(x) * tile_Size, floor(y) * tile_Size, tile_Size, tile_Size )
 
     def game_tick(self):
         self.tick += 1
@@ -46,61 +46,82 @@ class GameObject(pygame.sprite.Sprite):
 
 class Ghost(GameObject):
     ghosts = []
-    def __init__(self, x, y, tile_size, map_size):
-        GameObject.__init__(self, './resources/ghost.png', x, y, tile_size, map_size)
+    num = 4
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/ghost.png', x, y)
         self.direction = 0
         self.velocity = 4.0 / 10.0
 
     def game_tick(self):
-        super(Ghost, self).game_tick()
-        if self.tick % 20 == 0 or self.direction == 0:
+         super(Ghost, self).game_tick()
+
+         if self.tick % 20 == 0 or self.direction == 0:
             self.direction = random.randint(1, 4)
 
-        if self.direction == 1:
+
+         if self.direction == 1:
             if not is_wall(floor(self.x + self.velocity), self.y):
                 self.x += self.velocity
-            if self.x >= self.map_size-1:
-                self.x = self.map_size-1
+            if self.x >= map_Size-1:
+                self.x = map_Size-1
                 self.direction = random.randint(1, 4)
-        elif self.direction == 2:
-            if not is_wall(self.x, floor(self.y+self.velocity)):
+         elif self.direction == 2:
+            if not is_wall(self.x, floor(self.y + self.velocity)):
                 self.y += self.velocity
-            if self.y >= self.map_size-1:
-                self.y = self.map_size-1
+            if self.y >= map_Size-1:
+                self.y = map_Size-1
                 self.direction = random.randint(1, 4)
-        elif self.direction == 3:
+         elif self.direction == 3:
             if not is_wall(floor(self.x - self.velocity), self.y):
                 self.x -= self.velocity
             if self.x <= 0:
-                self.x = 0
-                self.direction = random.randint(1, 4)
-        elif self.direction == 4:
-            if not is_wall(self.x, floor(self.y-self.velocity)):
+                    self.x = 0
+                    self.direction = random.randint(1, 4)
+         elif self.direction == 4:
+            if not is_wall(self.x, floor(self.y - self.velocity)):
                 self.y -= self.velocity
             if self.y <= 0:
                 self.y = 0
                 self.direction = random.randint(1, 4)
-        self.set_coord(self.x, self.y)
+         if floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y) :
+              Ghost.ghosts.remove(self)
+         self.set_coord(self.x, self.y)
 
 
 class Pacman(GameObject):
-    def __init__(self, x, y, tile_size, map_size):
-        GameObject.__init__(self, './resources/pacman.png', x, y, tile_size, map_size)
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/pacman.png', x, y)
         self.direction = 0
         self.velocity = 4.0 / 10.0
+
+    def __get_direction(self):
+        return self.__direction;
+    def __set_direction(self, d):
+        self.__direction = d
+        if d == 1:
+            self.image = pygame.image.load('./resources/pacman.png')
+        elif d == 2:
+            self.image = pygame.image.load('./resources/pacmandown.png')
+        elif d == 3:
+            self.image = pygame.image.load('./resources/pacmanleft.png')
+        elif d == 4:
+            self.image = pygame.image.load('./resources/pacmanup.png')
+        elif d != 0:
+            raise ValueError("invalid direction detected")
+    direction = property(__get_direction, __set_direction)
 
     def game_tick(self):
         super(Pacman, self).game_tick()
         if self.direction == 1:
             if not is_wall(floor(self.x + self.velocity), self.y):
                 self.x += self.velocity
-            if self.x >= self.map_size-1:
-                self.x = self.map_size-1
+            if self.x >= map_Size-1:
+                self.x = map_Size-1
         elif self.direction == 2:
             if not is_wall(self.x, floor(self.y+self.velocity)):
                 self.y += self.velocity
-            if self.y >= self.map_size-1:
-                self.y = self.map_size-1
+            if self.y >= map_Size-1:
+                self.y = map_Size-1
         elif self.direction == 3:
             if not is_wall(floor(self.x - self.velocity), self.y):
                 self.x -= self.velocity
@@ -114,40 +135,66 @@ class Pacman(GameObject):
 
         self.set_coord(self.x, self.y)
 
-class Food(GameObject):
-    def __init__(self, x, y, tile_size, map_size):
-        GameObject.__init__(self, './resources/pig.png', x,y,tile_size,map_size)
-    def game_tick(self):
-        super(Food,self).game_tick()
+        if isinstance(MAP.map[int(self.y)][int(self.x)], Dot):
+            MAP.map[int(self.y)][int(self.x)] = None
+
+
+def draw_ghosts(screen):
+    for g in Ghost.ghosts:
+        g.draw(screen)
+
+def tick_ghosts():
+    for g in Ghost.ghosts:
+        g.game_tick()
+
+
+class Dot(GameObject):
+    def __init__(self, x, y):
+        GameObject.__init__(self,'./resources/dot.png', x, y)
+
+
+
 
 class Wall(GameObject):
-    def __init__(self, x, y, tile_size, map_size):
-        GameObject.__init__(self, './resources/wall.png', x, y, tile_size, map_size)
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/wall.png', x, y)
     def game_tick(self):
         super(Wall, self).game_tick()
 
-def create_walls(ts,ms):
-    Wall.w = [Wall(0,1,ts,ms), Wall(1,1,ts,ms), Wall(2,1,ts,ms), Wall(3,1,ts,ms), Wall(4,1,ts,ms), Wall(5,1,ts,ms)]
+def create_walls(coords):
+    Wall.w = [Wall(1,1)]
 
 def is_wall(x, y):
-    for w in Wall.w:
-        if (int(w.x), int(w.y)) == (int(x), int(y)):
-            return True
-    return False
+    return isinstance(MAP.map[int(y)][int(x)], Wall)
 
 def draw_walls(screen):
     for w in Wall.w:
         GameObject.draw(w,screen)
 
+
 class Map:
-        def __init__(self, x, y):
-                self.map = [ [list()]*x for i in range(y) ]
+        def __init__(self, filename):
+            self.map = []
+            f=open(filename, 'r')
+            txt = f.readlines()
+            f.close()
+            for y in range(len(txt)):
+                self.map.append([])
+                for x in range(len(txt[y])):
+                    if '#' in txt[y][x]:
+                        self.map[-1].append(Wall(x, y))
+                    elif '.' in txt[y][x]:
+                        self.map[-1].append(Dot(x, y))
 
-        # Функция возвращает список обьектов в данной точке карты
-        def get(self,x,y):
-                return self.map[x][y]
-
-
+                    elif txt[y][x] == "G":
+                        Ghost.ghosts.append(Ghost(x ,y))
+                    else:
+                        self.map[-1].append(None)
+        def draw(self, screen):
+            for y in range(len(self.map)):
+                for x in range(len(self.map[y])):
+                    if self.map[y][x]:
+                       self.map[y][x].draw(screen)
 
 
 
@@ -172,24 +219,20 @@ def process_events(events, packman):
 
 if __name__ == '__main__':
     init_window()
-    tile_size = 32
-    map_size = 16
-    ghost = Ghost(0, 0, tile_size, map_size)
-    ghost1 = Ghost(0, 3, tile_size, map_size)
-    create_walls(tile_size,map_size)
-    pacman = Pacman(5, 5, tile_size, map_size)
+
+    global MAP
+    MAP = Map('./resources/map.txt')
+    pacman = Pacman(5, 5)
     background = pygame.image.load("./resources/background.png")
     screen = pygame.display.get_surface()
 
     while 1:
         process_events(pygame.event.get(), pacman)
-        pygame.time.delay(100)
-        ghost.game_tick()
-        ghost1.game_tick()
+        pygame.time.delay(50)
+        tick_ghosts()
         pacman.game_tick()
         draw_background(screen, background)
         pacman.draw(screen)
-        ghost.draw(screen)
-        ghost1.draw(screen)
-        draw_walls(screen)
+        draw_ghosts(screen)
+        MAP.draw(screen)
         pygame.display.update()
